@@ -19,7 +19,13 @@ enum Type {
  */
 class Instruction {
 private:
-  enum InstrType { CONST_INSTR, VALUE_INSTR, EFFEC_INSTR, UNKNW_INSTR };
+  enum InstrType {
+    CONST_INSTR,
+    VALUE_INSTR,
+    EFFEC_INSTR,
+    LABEL_INSTR,
+    UNKNW_INSTR
+  };
 
   InstrType instrType = UNKNW_INSTR;
 
@@ -28,6 +34,9 @@ public:
   const std::string op;
 
   // After this everything is optional
+
+  /// Used for label kind of instruction
+  std::string label_instr;
 
   /// The value from const type operations. MUST BE STRING
   std::string value;
@@ -57,19 +66,26 @@ public:
   };
 
   /// Value kind of instructions
-  Instruction(decltype(op) &op, decltype(dest) &dest, const Type &destType,
-              decltype(arg) &args, decltype(funcs) &funcs,
-              decltype(labels) &labels)
+  Instruction(const std::string &op, const std::string &dest,
+              const Type &destType, const std::vector<std::string> &args,
+              const std::vector<std::string> &funcs,
+              const std::vector<std::string> &labels)
       : op(op), dest(dest), destType(destType), arg(args), funcs(funcs),
         labels(labels) {
     instrType = VALUE_INSTR;
   };
 
   /// Effect kind of instructions
-  Instruction(decltype(op) &op, decltype(arg) &args, decltype(funcs) &funcs,
-              decltype(labels) &labels)
+  Instruction(const std::string &op, const std::vector<std::string> &args,
+              const std::vector<std::string> &funcs,
+              const std::vector<std::string> &labels)
       : op(op), arg(args), funcs(funcs), labels(labels) {
     instrType = VALUE_INSTR;
+  };
+
+  /// Label kind of instructions
+  Instruction(const std::string &label) : label_instr(label) {
+    instrType = LABEL_INSTR;
   };
 };
 
@@ -91,8 +107,8 @@ public:
    * To properly generate a basic block use Function Block
    */
   BasicBlock(const std::vector<Instruction> &);
-  void set_predecssor(std::shared_ptr<BasicBlock> );
-  void set_successor(std::shared_ptr<BasicBlock> );
+  void set_predecssor(std::shared_ptr<BasicBlock>);
+  void set_successor(std::shared_ptr<BasicBlock>);
 };
 
 /**
@@ -102,17 +118,6 @@ public:
  */
 class FunctionBlock {
 private:
-  /// The function name [MUST BE UNIQUE THROUGHOUT THE PROGRAM]
-  std::string name;
-
-  /// Return type of the function, is set to `None` if not provided
-  Type type;
-
-  /// Arguments to the function
-  std::vector<std::pair<std::string, Type>> args;
-
-  /// Instructions in the function. This is used to construct BB
-  std::vector<Instruction> instrs;
 
   /// Predecessors of this function block.
   std::vector<std::shared_ptr<FunctionBlock>> predecessor;
@@ -131,12 +136,23 @@ private:
 public:
   /// Is this the function that is run on entry point
   bool isRootFunction = false;
+  /// The function name [MUST BE UNIQUE THROUGHOUT THE PROGRAM]
+  std::string name;
 
-  FunctionBlock() = delete;
+  /// Return type of the function, is set to `None` if not provided
+  Type type;
+
+  /// Arguments to the function
+  std::vector<std::pair<std::string, Type>> args;
+
+  /// Instructions in the function. This is used to construct BB
+  std::vector<Instruction> instrs;
+
   FunctionBlock(std::string name,
                 std::vector<std::pair<std::string, Type>> args,
-                std::vector<Instruction> instructions, Type returnType = NONE);
+                std::vector<Instruction> instructions, Type returnType = NONE) : name(name), args(args), instrs(instructions), type(returnType) {};
   FunctionBlock(std::string name, std::vector<BasicBlock> rootBasicBlock);
+
 };
 
 /**
@@ -145,9 +161,8 @@ public:
  * The call graph can be accessed node wise.
  */
 class Program {
-private:
-  FunctionBlock rootFunction;
-
 public:
-  Program(const std::vector<Instruction>& progFile);
+  std::vector<FunctionBlock> funcs;
+  Program(const std::vector<Instruction> &progFile);
+  Program(std::ifstream &brilFile);
 };

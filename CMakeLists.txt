@@ -17,6 +17,6 @@ add_executable(${PROJECT_NAME}
 	src/main.cpp 
 	src/jsonToOur.hpp
 	src/jsonToOur.cpp
-	src/core.cpp
+	src/program.cpp
 	src/core.hpp)
 target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
