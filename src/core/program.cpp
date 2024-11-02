@@ -1,6 +1,5 @@
 #include "core.hpp"
 #include <fstream>
-#include <iostream>
 #include <nlohmann/json.hpp>
 #include <vector>
 
@@ -72,7 +71,12 @@ Program::Program(std::ifstream &brilFile) {
               }
             }
 
-            instructions.push_back(Instruction(op, destType, value));
+            string dest = "null";
+            if(instr.contains("dest")){
+              dest = instr["dest"];
+            }
+
+            instructions.push_back(Instruction(dest, destType, value));
           } else {
             op = instr["op"];
 

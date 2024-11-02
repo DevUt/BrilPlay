@@ -1,4 +1,4 @@
-#include "core.hpp"
+#include <core/core.hpp>
 #include <fstream>
 #include <iostream>
 
@@ -15,13 +15,16 @@ int main() {
   for (auto funcs : pg.funcs) {
     cout << funcs.name << "\n";
     cout << "INSTRUCTIONS :\n";
-    for (auto &instrs : funcs.instrs) {
+    for (auto &instrs : funcs.instructions) {
       if (instrs.op.empty())
         cout << instrs.label_instr << '\n';
       else
         cout << instrs.op << '\n';
     }
     cout<<"--------------------------\n";
+  }
+  for(auto& x : pg.funcs){
+    x.exportToDot(x.name + ".dot");
   }
   brilF.close();
 }

@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
 find_package(nlohmann_json REQUIRED)
+find_package(Boost REQUIRED)
 
 execute_process(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
@@ -15,8 +16,19 @@ execute_process(
 )
 add_executable(${PROJECT_NAME} 
 	src/main.cpp 
-	src/jsonToOur.hpp
-	src/jsonToOur.cpp
-	src/program.cpp
-	src/core.hpp)
-target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
+)
+
+# add_executable(StrongVar, 
+#         src/strongvar.cpp
+# )
+
+
+add_subdirectory(src/core)
+
+# Link against the core library
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        core
+	nlohmann_json::nlohmann_json
+)
+
