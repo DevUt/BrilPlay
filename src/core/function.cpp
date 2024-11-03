@@ -23,9 +23,11 @@ FunctionBlock::FunctionBlock(std::string name,
       for (std::string &x : label_store) {
         label_to_instr[x] = instr_cnt;
       }
-      CFG::vertex_descriptor vd = boost::add_vertex(
-          BasicBlock({instr}, name + "_BLOCK_" + std::to_string(instr_cnt)),
-          graph);
+      BasicBlock bb =
+          BasicBlock({instr}, name + "_BLOCK_" + std::to_string(instr_cnt));
+      basicBlocks.push_back(bb);
+
+      CFG::vertex_descriptor vd = boost::add_vertex(bb, graph);
       vd_map[instr_cnt++] = vd;
       label_store.clear();
     }
@@ -57,5 +59,4 @@ FunctionBlock::FunctionBlock(std::string name,
       i++;
     }
   }
-
 };

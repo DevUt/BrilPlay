@@ -231,6 +231,9 @@ public:
   /// Instructions in the function. This is used to construct BB
   std::vector<Instruction> instructions;
 
+  /// Instructions in the function. This is used to construct BB
+  std::vector<BasicBlock> basicBlocks;
+
   /// Control Flow Graph of this function
   CFG graph;
 
