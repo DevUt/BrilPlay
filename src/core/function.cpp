@@ -1,9 +1,57 @@
 #include "core.hpp"
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/detail/adjacency_list.hpp>
 #include <boost/graph/graph_utility.hpp>
+#include <boost/graph/properties.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+class VertexWriter {
+public:
+  VertexWriter(const CFG &g) : graph(g) {}
+
+  void operator()(std::ostream &out, const CFG::vertex_descriptor v) const {
+    out << "[label=\"" << graph[v].blockName << "\\n";
+    for (auto &instr : graph[v].instructions) {
+      out << instr.to_string() << "\\n";
+    }
+    out << "\"]";
+  }
+
+private:
+  const CFG &graph;
+};
+
+class EdgeWriter {
+public:
+  EdgeWriter(const CFG &g) : graph(g) {}
+
+  void operator()(std::ostream &out, const CFG::edge_descriptor e) const {
+    if (!graph[e].label.empty()) {
+      out << "[label=\"" << graph[e].label << "\"";
+      out << " dir=one color=\""
+          << (graph[e].type == Edge::CONDITIONAL ? "blue" : "red") << "\"]";
+    } else {
+      out << "[dir=one color=\"green\"]";
+    }
+  }
+
+private:
+  const CFG &graph;
+};
+
+class PostOrderVisitor : public boost::default_dfs_visitor {
+private:
+  std::vector<CFG::vertex_descriptor> &vertexOrder;
+
+public:
+  PostOrderVisitor(std::vector<CFG::vertex_descriptor> &vertexOrder)
+      : vertexOrder(vertexOrder) {};
+  void finish_vertex(const CFG::vertex_descriptor v, const CFG &g) {
+    vertexOrder.push_back(v);
+  }
+};
 
 FunctionBlock::FunctionBlock(std::string name,
                              std::vector<std::pair<std::string, Type>> args,
@@ -28,6 +76,9 @@ FunctionBlock::FunctionBlock(std::string name,
       basicBlocks.push_back(bb);
 
       CFG::vertex_descriptor vd = boost::add_vertex(bb, graph);
+      if (rootBlock == -1) {
+        rootBlock = vd;
+      }
       vd_map[instr_cnt++] = vd;
       label_store.clear();
     }
@@ -59,4 +110,83 @@ FunctionBlock::FunctionBlock(std::string name,
       i++;
     }
   }
-};
+}
+
+/**
+ * Export to a .dot file
+ */
+void FunctionBlock::exportToDot(const std::string &filename) const {
+  std::ofstream dot_file(filename);
+  boost::write_graphviz(dot_file, graph, VertexWriter(graph),
+                        EdgeWriter(graph));
+}
+
+/**
+ * Get RPOrder of CFG of this function.
+ */
+std::vector<CFG::vertex_descriptor> FunctionBlock::computeRPO() const {
+  std::vector<CFG::vertex_descriptor> post_order;
+  std::vector<boost::default_color_type> colors(num_vertices(graph));
+
+  PostOrderVisitor visitor(post_order);
+
+  boost::depth_first_search(
+      graph, visitor,
+      make_iterator_property_map(colors.begin(),
+                                 get(boost::vertex_index, graph)),
+      rootBlock);
+  return post_order;
+}
+
+/**
+ * @brief Compute Post Order
+ *
+ */
+std::vector<CFG::vertex_descriptor> FunctionBlock::computePO() const {
+  std::vector<CFG::vertex_descriptor> post_order;
+  std::vector<boost::default_color_type> colors(num_vertices(graph));
+
+  PostOrderVisitor visitor(post_order);
+
+  boost::depth_first_search(
+      graph, visitor,
+      make_iterator_property_map(colors.begin(),
+                                 get(boost::vertex_index, graph)),
+      rootBlock);
+  std::reverse(post_order.begin(), post_order.end());
+  return post_order;
+}
+
+/**
+ * Retrieve basic block associated with the vertex descriptor
+ */
+BasicBlock
+FunctionBlock::getBasicBlock(const CFG::vertex_descriptor &vd) const {
+  return graph[vd];
+}
+
+/**
+ * Get sucessor of the basic block
+ */
+std::vector<CFG::vertex_descriptor>
+FunctionBlock::getSucessors(const CFG::vertex_descriptor &vd) const {
+  std::vector<CFG::vertex_descriptor> successors;
+  auto [ei_begin, ei_end] = out_edges(vd, graph);
+  for (; ei_begin != ei_end; ++ei_begin) {
+    successors.push_back(target(*ei_begin, graph));
+  }
+  return successors;
+}
+
+/**
+ * Get predecssors of the basic block
+ */
+std::vector<CFG::vertex_descriptor>
+FunctionBlock::getPredecessors(const CFG::vertex_descriptor &vd) const {
+  std::vector<CFG::vertex_descriptor> pred;
+  auto [ei_begin, ei_end] = boost::in_edges(vd, graph);
+  for (; ei_begin != ei_end; ++ei_begin) {
+    pred.push_back(source(*ei_begin, graph));
+  }
+  return pred;
+}

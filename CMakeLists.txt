@@ -18,6 +18,10 @@ add_executable(${PROJECT_NAME}
 	src/main.cpp 
 )
 
+add_executable(liveVar
+    src/livevar.cpp
+)
+
 # add_executable(StrongVar, 
 #         src/strongvar.cpp
 # )
@@ -32,3 +36,8 @@ target_link_libraries(${PROJECT_NAME}
 	nlohmann_json::nlohmann_json
 )
 
+
+target_link_libraries(liveVar
+    PRIVATE
+        core
+)

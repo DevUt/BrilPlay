@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/depth_first_search.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <string>
 #include <vector>
@@ -178,44 +179,19 @@ public:
   Edge() = default;
 };
 
-using CFG = boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS,
-                                  BasicBlock, Edge, boost::no_property>;
+using CFG =
+    boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS,
+                          BasicBlock, Edge, boost::no_property>;
 
-class VertexWriter {
-public:
-  VertexWriter(const CFG &g) : graph(g) {}
-
-  void operator()(std::ostream &out, const CFG::vertex_descriptor v) const {
-    out << "[label=\"" << graph[v].blockName << "\\n";
-    for (auto &instr : graph[v].instructions) {
-      out << instr.to_string() << "\\n";
-    }
-    out << "\"]";
-  }
-
-private:
-  const CFG &graph;
-};
-
-class EdgeWriter {
-public:
-  EdgeWriter(const CFG &g) : graph(g) {}
-
-  void operator()(std::ostream &out, const CFG::edge_descriptor e) const {
-    if (!graph[e].label.empty()) {
-      out << "[label=\"" << graph[e].label << "\"]";
-    }
-  }
-
-private:
-  const CFG &graph;
-};
 /**
  * This interface gives access to the basic blocks control
  * flow graph (inside a single function) as both adjacency
  * list and adjacency matrix.
  */
 class FunctionBlock {
+private:
+  CFG::vertex_descriptor rootBlock = -1;
+
 public:
   /// Is this the function that is run on entry point
   bool isRootFunction = false;
@@ -234,18 +210,32 @@ public:
   /// Instructions in the function. This is used to construct BB
   std::vector<BasicBlock> basicBlocks;
 
-  /// Control Flow Graph of this function
-  CFG graph;
-
   FunctionBlock(std::string, std::vector<std::pair<std::string, Type>>,
                 std::vector<Instruction>, Type);
   // FunctionBlock(std::string name, std::vector<BasicBlock> rootBasicBlock);
 
-  void exportToDot(const std::string &filename) {
-    std::ofstream dot_file(filename);
-    boost::write_graphviz(dot_file, graph, VertexWriter(graph),
-                          EdgeWriter(graph));
-  };
+  /// Control Flow Graph of this function
+  CFG graph;
+
+  /// Create a file with the dot specification of the control flow
+  /// graph of this func
+  void exportToDot(const std::string &filename) const;
+
+  /// Compute Reverse PostOrderTraversal of the Control Flow graph
+  std::vector<CFG::vertex_descriptor> computeRPO() const;
+
+  /// Compute Reverse PostOrderTraversal of the Control Flow graph
+  std::vector<CFG::vertex_descriptor> computePO() const;
+
+  /// Get BasicBlock from graph
+  BasicBlock getBasicBlock(const CFG::vertex_descriptor &vd) const;
+
+  /// Get sucessors of a vertex
+  std::vector<CFG::vertex_descriptor>
+  getSucessors(const CFG::vertex_descriptor &vd) const;
+
+  std::vector<CFG::vertex_descriptor>
+  getPredecessors(const CFG::vertex_descriptor &vd) const;
 };
 /**
  * Each program is set of functions. This class provides that

@@ -1,6 +1,17 @@
 #include <core/core.hpp>
 #include <fstream>
 #include <iostream>
+#include <ostream>
+
+
+template<typename T>
+std::ostream& operator<<(std::ostream& os, const std::vector<T>& v){
+  for(auto& x : v){
+    os<<x<<' ';
+  }
+  os<<'\n';
+  return os;
+}
 
 int main() {
   using std::cin, std::cout;
@@ -23,8 +34,26 @@ int main() {
     }
     cout<<"--------------------------\n";
   }
+
   for(auto& x : pg.funcs){
     x.exportToDot(x.name + ".dot");
+    auto rpo = x.computeRPO();
+    for(auto& vd : rpo){
+      std::cout<<"Sucessors: \n";
+      std::cout<<x.getBasicBlock(vd).blockName<<" : ";
+      for(auto& succ : x.getSucessors(vd)){
+        std::cout<<x.getBasicBlock(succ).blockName<<' ';
+      }
+      cout<<'\n';
+    }
+    for(auto& vd : rpo){
+      std::cout<<"Predeccessors: \n";
+      std::cout<<x.getBasicBlock(vd).blockName<<" : ";
+      for(auto& pred : x.getPredecessors(vd)){
+        std::cout<<x.getBasicBlock(pred).blockName<<' ';
+      }
+      cout<<'\n';
+    }
   }
   brilF.close();
 }
